@@ -36,6 +36,7 @@ async def async_setup_entry(
 
     # Create entity for random favorite image
     async_add_entities([ImmichImageFavorite(hass, hub)])
+    async_add_entities([ImmichImageTimeline(hass, hub)])
 
     # Create entities for random image from each watched album
     watched_albums = config_entry.options.get(CONF_WATCHED_ALBUMS, [])
@@ -142,6 +143,15 @@ class ImmichImageFavorite(BaseImmichImage):
         """Refresh the list of available asset IDs."""
         return [image["id"] for image in await self.hub.list_favorite_images()]
 
+class ImmichImageTimeline(BaseImmichImage):
+    """Image entity for Immich that displays a random image from the user's timeline."""
+
+    _attr_unique_id = "timeline_image"
+    _attr_name = "Immich: Random timeline image"
+
+    async def _refresh_available_asset_ids(self) -> list[str] | None:
+        """Refresh the list of available asset IDs."""
+        return [image["id"] for image in await self.hub.list_timeline_images()]
 
 class ImmichImageAlbum(BaseImmichImage):
     """Image entity for Immich that displays a random image from a specific album."""

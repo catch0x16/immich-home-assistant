@@ -114,6 +114,30 @@ class ImmichHub:
             _LOGGER.error("Error connecting to the API: %s", exception)
             raise CannotConnect from exception
 
+    async def list_timeline_images(self) -> list[dict]:
+        """List all timeline images."""
+        try:
+            async with aiohttp.ClientSession() as session:
+                url = urljoin(self.host, "/api/timeline/bucket")
+                headers = {"Accept": "application/json", _HEADER_API_KEY: self.api_key}
+
+                async with session.get(url=url, headers=headers) as response:
+                    if response.status != 200:
+                        raw_result = await response.text()
+                        _LOGGER.error("Error from API: body=%s", raw_result)
+                        raise ApiError()
+
+                    assets: list[dict] = await response.json()
+
+                    filtered_assets: list[dict] = [
+                        asset for asset in assets if asset["type"] == "IMAGE"
+                    ]
+
+                    return filtered_assets
+        except aiohttp.ClientError as exception:
+            _LOGGER.error("Error connecting to the API: %s", exception)
+            raise CannotConnect from exception
+
     async def list_all_albums(self) -> list[dict]:
         """List all albums."""
         try:
