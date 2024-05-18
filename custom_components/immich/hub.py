@@ -118,16 +118,31 @@ class ImmichHub:
         """List all timeline images."""
         try:
             async with aiohttp.ClientSession() as session:
-                url = urljoin(self.host, "/api/timeline/bucket")
+                buckets_url = urljoin(self.host, "/api/timeline/buckets")
                 headers = {"Accept": "application/json", _HEADER_API_KEY: self.api_key}
+                buckets_params = {"isArchived": "false", "size": "MONTH", "withPartners": "true", "withStacked": "true"}
 
-                async with session.get(url=url, headers=headers) as response:
+                async with session.get(url=buckets_url, headers=headers, params=buckets_params) as response:
                     if response.status != 200:
                         raw_result = await response.text()
                         _LOGGER.error("Error from API: body=%s", raw_result)
                         raise ApiError()
 
-                    assets: list[dict] = await response.json()
+                    buckets: list[dict] = await response.json()
+
+                    assets = []
+                    for bucket in buckets:
+                        bucket_url = urljoin(self.host, "/api/timeline/bucket")
+                        bucket_params = {"isArchived": "false", "size": "MONTH", "withPartners": "true", "withStacked": "true", "timeBucket": bucket["timeBucket"]}
+                        async with session.get(url=bucket_url, headers=headers, params=bucket_params) as response:
+                            if response.status != 200:
+                                raw_result = await response.text()
+                                _LOGGER.error("Error from API: body=%s", raw_result)
+                                raise ApiError()
+
+                            bucket: list[dict] = await response.json()
+                            for asset in bucket:
+                                assets.append(asset)
 
                     filtered_assets: list[dict] = [
                         asset for asset in assets if asset["type"] == "IMAGE"
